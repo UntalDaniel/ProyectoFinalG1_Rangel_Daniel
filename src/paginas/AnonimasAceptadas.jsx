@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { Button } from '@mui/material'
-import { listarAnonimas } from '../servicios/firebase'
+import { listarAnonimas, actualizarDocumento } from '../servicios/firebase'
 import { useNavigate } from 'react-router-dom'
+import { useUsuario } from '../contexto/UsuarioContexto'
+import { ROLES } from '../servicios/modelos'
 
 export default function AnonimasAceptadas() {
   const [denuncias, setDenuncias] = useState([])
@@ -9,6 +11,7 @@ export default function AnonimasAceptadas() {
   const [error, setError] = useState('')
   const [cursor, setCursor] = useState(null)
   const navegar = useNavigate()
+  const { rol } = useUsuario()
 
   async function cargarDenunciasAceptadas(mas = false) {
     try {
@@ -26,7 +29,14 @@ export default function AnonimasAceptadas() {
     cargarDenunciasAceptadas(false)
   }, [])
 
-  function desarrollar(item) {
+  async function desarrollar(item) {
+    // solo reportero puede desarrollar
+    if (rol !== ROLES.reportero) return
+    // actualizo estado para que salga de la lista
+    try {
+      await actualizarDocumento('anonimas', item.id, { estado: 'desarrollado' })
+      setDenuncias((prev) => prev.filter((x) => x.id !== item.id))
+    } catch {}
     navegar('/panel/noticias/nueva?anonimaId=' + encodeURIComponent(item.id), {
       state: {
         prefillDesdeAnonima: {
@@ -35,6 +45,17 @@ export default function AnonimasAceptadas() {
         },
       },
     })
+  }
+
+  async function rechazar(item) {
+    // editor puede rechazar
+    if (rol !== ROLES.editor && rol !== ROLES.administrador) return
+    try {
+      await actualizarDocumento('anonimas', item.id, { estado: 'rechazado' })
+      setDenuncias((prev) => prev.filter((x) => x.id !== item.id))
+    } catch (e) {
+      setError('No se pudo rechazar esta anónima')
+    }
   }
 
   return (
@@ -57,7 +78,12 @@ export default function AnonimasAceptadas() {
               )}
               <p style={{ whiteSpace: 'pre-wrap' }} className="m-0">{it.texto}</p>
               <div className="acciones-linea">
-                <Button size="small" variant="contained" onClick={() => desarrollar(it)}>Desarrollar</Button>
+                {rol === ROLES.reportero && (
+                  <Button size="small" variant="contained" onClick={() => desarrollar(it)}>Desarrollar</Button>
+                )}
+                {(rol === ROLES.editor || rol === ROLES.administrador) && (
+                  <Button size="small" color="error" onClick={() => rechazar(it)}>Rechazar</Button>
+                )}
               </div>
             </div>
           </div>
