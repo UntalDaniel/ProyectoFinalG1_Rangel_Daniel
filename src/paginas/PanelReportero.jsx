@@ -7,7 +7,7 @@ import { listarAnonimas, listarNoticiasPorAutor } from '../servicios/firebase'
 export default function PanelReportero() {
   const navegar = useNavigate()
   const { usuarioActual } = useUsuario()
-  const [contadores, setContadores] = useState({ anonAcept: 0, misNoticias: 0 })
+  const [contadores, setContadores] = useState({ anonimasAceptadas: 0, misNoticias: 0 })
 
   useEffect(() => {
     async function cargar() {
@@ -18,11 +18,11 @@ export default function PanelReportero() {
           uid ? listarNoticiasPorAutor(uid) : Promise.resolve([]),
         ])
         setContadores({
-          anonAcept: anon.length,
+          anonimasAceptadas: anon.length,
           misNoticias: mis.length,
         })
       } catch (e) {
-        setContadores({ anonAcept: 0, misNoticias: 0 })
+        setContadores({ anonimasAceptadas: 0, misNoticias: 0 })
       }
     }
     if (usuarioActual) cargar()
@@ -38,7 +38,7 @@ export default function PanelReportero() {
       <div className="grid-tarjetas">
         <div className="tarjeta">
           <h3 className="mt-0">📥 Anónimas aceptadas</h3>
-          <p>Total: <strong>{contadores.anonAcept}</strong></p>
+          <p>Total: <strong>{contadores.anonimasAceptadas}</strong></p>
           <div>
             <Button variant="contained" color="success" onClick={() => navegar('/panel/anonimas/aceptadas')}>Abrir</Button>
           </div>

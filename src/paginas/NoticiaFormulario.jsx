@@ -4,13 +4,14 @@ import { crearDocumento, actualizarDocumento, leerDocumento, listarDocumentos, s
 import { useUsuario } from '../contexto/UsuarioContexto'
 import { ESTADOS_NOTICIA, ROLES } from '../servicios/modelos'
 import { TextField, Button } from '@mui/material'
+import { slugify } from '../servicios/slug'
 
 export default function NoticiaFormulario() {
   const { usuarioActual, rol } = useUsuario()
-  const params = useParams()
-  const location = useLocation()
+  const parametros = useParams()
+  const ubicacion = useLocation()
   const navegar = useNavigate()
-  const esEdicion = Boolean(params.id)
+  const esEdicion = Boolean(parametros.id)
 
   const [secciones, setSecciones] = useState([])
   const [cargando, setCargando] = useState(esEdicion)
@@ -37,10 +38,16 @@ export default function NoticiaFormulario() {
     cargarSecciones()
   }, [])
 
+  function obtenerSlugSeccionActual() {
+    const s = secciones.find((x) => x.id === (datosNoticia.seccionId || ''))
+    if (!s) return ''
+    return s.slug || slugify(s.nombre || '')
+  }
+
   useEffect(() => {
     async function cargarNoticia() {
       try {
-        const existente = await leerDocumento('noticias', params.id)
+        const existente = await leerDocumento('noticias', parametros.id)
         if (existente) {
           setDatosNoticia({
             titulo: existente.titulo || '',
@@ -59,13 +66,13 @@ export default function NoticiaFormulario() {
       }
     }
     if (esEdicion) cargarNoticia()
-  }, [esEdicion, params.id])
+  }, [esEdicion, parametros.id])
 
   useEffect(() => {
     if (esEdicion) return
-    const search = new URLSearchParams(location.search)
+    const search = new URLSearchParams(ubicacion.search)
     const anonimaId = search.get('anonimaId')
-    const prefill = location.state?.prefillDesdeAnonima
+    const prefill = ubicacion.state?.prefillDesdeAnonima
     async function intentarPrefill() {
       try {
         if (anonimaId) {
@@ -91,14 +98,14 @@ export default function NoticiaFormulario() {
       }
     }
     intentarPrefill()
-  }, [location.search])
+  }, [ubicacion.search])
 
-  function manejarCambio(e) {
+  function cambiarCampo(e) {
     const { name, value } = e.target
     setDatosNoticia((prev) => ({ ...prev, [name]: value }))
   }
 
-  async function manejarArchivo(e) {
+  async function subirImagen(e) {
     const archivo = e.target.files?.[0]
     if (!archivo || !usuarioActual) return
     try {
@@ -110,7 +117,7 @@ export default function NoticiaFormulario() {
     }
   }
 
-  async function manejarEnviar(e) {
+  async function enviarFormulario(e) {
     e.preventDefault()
     setError(null)
     try {
@@ -124,7 +131,7 @@ export default function NoticiaFormulario() {
         autorNombre: usuarioActual?.displayName || usuarioActual?.email || '',
       }
       if (esEdicion) {
-        await actualizarDocumento('noticias', params.id, datos)
+        await actualizarDocumento('noticias', parametros.id, datos)
       } else {
         await crearDocumento('noticias', datos)
       }
@@ -144,12 +151,12 @@ export default function NoticiaFormulario() {
   return (
     <div className="contenedor-medio">
       <h1 className="mt-0">{esEdicion ? 'Editar noticia' : 'Nueva noticia'}</h1>
-      <form onSubmit={manejarEnviar} className="form-grid">
+      <form onSubmit={enviarFormulario} className="form-grid">
         <TextField
           label="Título"
           name="titulo"
           value={datosNoticia.titulo}
-          onChange={manejarCambio}
+          onChange={cambiarCampo}
           required
           placeholder="Título de la noticia"
         />
@@ -157,7 +164,7 @@ export default function NoticiaFormulario() {
           label="Subtítulo"
           name="subtitulo"
           value={datosNoticia.subtitulo}
-          onChange={manejarCambio}
+          onChange={cambiarCampo}
           placeholder="Subtítulo o bajante"
         />
         <div>
@@ -165,7 +172,7 @@ export default function NoticiaFormulario() {
           <select
             name="municipio"
             value={datosNoticia.municipio}
-            onChange={manejarCambio}
+            onChange={cambiarCampo}
             className="select-simple w-100"
           required
           >
@@ -173,27 +180,27 @@ export default function NoticiaFormulario() {
             <option value="CAQUETÁ">CAQUETÁ</option>
             <option value="FLORENCIA">FLORENCIA</option>
             <option value="ALBANIA">ALBANIA</option>
-            <option value="BELEN DE LOS ANDAQUIES">BELEN DE LOS ANDAQUIES</option>
-            <option value="CARTAGENA DEL CHAIRA">CARTAGENA DEL CHAIRA</option>
-            <option value="CURRILLO">CURRILLO</option>
+            <option value="BELÉN DE LOS ANDAQUÍES">BELÉN DE LOS ANDAQUÍES</option>
+            <option value="CARTAGENA DEL CHAIRÁ">CARTAGENA DEL CHAIRÁ</option>
+            <option value="CURILLO">CURILLO</option>
             <option value="EL DONCELLO">EL DONCELLO</option>
             <option value="EL PAUJIL">EL PAUJIL</option>
             <option value="LA MONTAÑITA">LA MONTAÑITA</option>
-            <option value="MILAN">MILAN</option>
+            <option value="MILÁN">MILÁN</option>
             <option value="MORELIA">MORELIA</option>
             <option value="PUERTO RICO">PUERTO RICO</option>
-            <option value="SAN JOSE DEL FRAGUA">SAN JOSE DEL FRAGUA</option>
-            <option value="SAN VICENTE DEL CAGUAN">SAN VICENTE DEL CAGUAN</option>
+            <option value="SAN JOSÉ DEL FRAGUA">SAN JOSÉ DEL FRAGUA</option>
+            <option value="SAN VICENTE DEL CAGUÁN">SAN VICENTE DEL CAGUÁN</option>
             <option value="SOLANO">SOLANO</option>
             <option value="SOLITA">SOLITA</option>
-            <option value="VALPARAISO">VALPARAISO</option>
+            <option value="VALPARAÍSO">VALPARAÍSO</option>
           </select>
         </div>
         <TextField
           label="Contenido"
           name="contenido"
           value={datosNoticia.contenido}
-          onChange={manejarCambio}
+          onChange={cambiarCampo}
           multiline
           minRows={6}
           placeholder="Escribe el contenido aquí..."
@@ -201,7 +208,7 @@ export default function NoticiaFormulario() {
         />
         <div>
           <p className="m-0 mb-2">Categoría</p>
-          <select name="seccionId" value={datosNoticia.seccionId} onChange={manejarCambio} required className="select-simple w-100">
+          <select name="seccionId" value={datosNoticia.seccionId} onChange={cambiarCampo} required className="select-simple w-100">
             <option value="" disabled>Elige una categoría</option>
             {secciones.map((s) => (
               <option key={s.id} value={s.id}>{s.nombre}</option>
@@ -212,7 +219,7 @@ export default function NoticiaFormulario() {
           <p className="m-0 mb-2">Imagen (opcional)</p>
           <Button variant="outlined" component="label">
             Subir imagen
-            <input hidden type="file" accept="image/*" onChange={manejarArchivo} />
+            <input hidden type="file" accept="image/*" onChange={subirImagen} />
           </Button>
           {datosNoticia.imagenUrl && (
             <div className="mt-2">
@@ -222,7 +229,7 @@ export default function NoticiaFormulario() {
         </div>
         <div>
           <p className="m-0 mb-2">Estado</p>
-          <select name="estado" value={datosNoticia.estado} onChange={manejarCambio} className="select-simple w-100">
+          <select name="estado" value={datosNoticia.estado} onChange={cambiarCampo} className="select-simple w-100">
             {opcionesEstado.map((e) => (
               <option key={e} value={e}>{e}</option>
             ))}
@@ -232,6 +239,17 @@ export default function NoticiaFormulario() {
         <div className="acciones-linea">
           <Button type="submit" variant="contained">{esEdicion ? 'Guardar cambios' : 'Crear noticia'}</Button>
           <Button type="button" variant="outlined" onClick={() => navegar('/panel/noticias')}>Cancelar</Button>
+          {esEdicion && datosNoticia.estado === ESTADOS_NOTICIA.publicado && (
+            <Button
+              type="button"
+              component="a"
+              href={`/secciones/${obtenerSlugSeccionActual()}/${parametros.id}`}
+              target="_blank"
+              rel="noopener"
+            >
+              Vista pública
+            </Button>
+          )}
         </div>
       </form>
     </div>

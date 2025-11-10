@@ -1,10 +1,10 @@
-import { Link, Routes, Route } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import Inicio from './paginas/Inicio'
 import DetalleNoticia from './paginas/DetalleNoticia'
+import SeccionPagina from './paginas/SeccionPagina'
 import Ingresar from './paginas/Ingresar'
 import RutaPrivada from './rutas/RutaPrivada'
 import Panel from './paginas/Panel'
-import { useUsuario } from './contexto/UsuarioContexto'
 import SeccionesLista from './paginas/SeccionesLista'
 import SeccionFormulario from './paginas/SeccionFormulario'
 import NoticiasLista from './paginas/NoticiasLista'
@@ -16,17 +16,18 @@ import Footer from './Components/Footer/Footer'
 import { ROLES } from './servicios/modelos'
 import AnonimasModeracion from './paginas/AnonimasModeracion'
 import AnonimasAceptadas from './paginas/AnonimasAceptadas'
+import VideosAdmin from './paginas/VideosAdmin'
 import './App.css'
 
 function App() {
-  const { usuarioActual, salir } = useUsuario()
   return (
     <div className="contenedor-principal">
       <Header />
       <main className="area-principal contenedor-centro">
         <Routes>
           <Route path="/" element={<Inicio />} />
-          <Route path="/noticia/:id" element={<DetalleNoticia />} />
+          <Route path="/secciones/:slug" element={<SeccionPagina />} />
+          <Route path="/secciones/:slug/:id" element={<DetalleNoticia />} />
           <Route path="/ingresar" element={<Ingresar />} />
           <Route
             path="/panel"
@@ -116,6 +117,16 @@ function App() {
               <RutaPrivada>
                 <RutaRol rolesPermitidos={[ROLES.reportero, ROLES.editor, ROLES.administrador]}>
                   <AnonimasAceptadas />
+                </RutaRol>
+              </RutaPrivada>
+            }
+          />
+          <Route
+            path="/panel/videos"
+            element={
+              <RutaPrivada>
+                <RutaRol rolesPermitidos={[ROLES.administrador]}>
+                  <VideosAdmin />
                 </RutaRol>
               </RutaPrivada>
             }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { listarDocumentos, eliminarDocumento, actualizarDocumento } from '../servicios/firebase'
+import { slugify } from '../servicios/slug'
 import { useUsuario } from '../contexto/UsuarioContexto'
 import { Button, Chip } from '@mui/material'
 import { ROLES, ESTADOS_NOTICIA } from '../servicios/modelos'
@@ -10,12 +11,17 @@ export default function NoticiasLista() {
   const [noticias, setNoticias] = useState([])
   const [estaCargando, setEstaCargando] = useState(true)
   const [error, setError] = useState(null)
+  const [secciones, setSecciones] = useState([])
   const navegar = useNavigate()
 
   async function cargar() {
     setError(null)
     try {
-      const todas = await listarDocumentos('noticias')
+      const [todas, secc] = await Promise.all([
+        listarDocumentos('noticias'),
+        listarDocumentos('secciones'),
+      ])
+      setSecciones(secc)
       const esGestor = rol === ROLES.editor || rol === ROLES.administrador
       const filtradas = esGestor ? todas : todas.filter((n) => n.autorUid === usuarioActual?.uid)
       filtradas.sort((a, b) => (b.fechaCreacion?.seconds || 0) - (a.fechaCreacion?.seconds || 0))
@@ -32,7 +38,7 @@ export default function NoticiasLista() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usuarioActual, rol])
 
-  async function manejarEliminar(id) {
+  async function eliminarNoticia(id) {
     const ok = confirm('¿Eliminar esta noticia?')
     if (!ok) return
     try {
@@ -52,6 +58,12 @@ export default function NoticiasLista() {
     }
   }
 
+  function obtenerSlugSeccion(seccionId) {
+    const s = secciones.find((x) => x.id === seccionId)
+    if (!s) return ''
+    return s.slug || slugify(s.nombre || '')
+  }
+
   if (estaCargando) return <p>Cargando noticias...</p>
 
   return (
@@ -66,7 +78,12 @@ export default function NoticiasLista() {
       ) : (
         <div className="grid-tarjetas">
           {noticias.map((n) => (
-            <div key={n.id} className="tarjeta" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <div key={n.id} className="tarjeta overflow-oculto" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+              {n.imagenUrl ? (
+                <img src={n.imagenUrl} alt={n.titulo} loading="lazy" className="tarjeta-cabecera-img" />
+              ) : (
+                <div className="tarjeta-cabecera-vacia" />
+              )}
               <div style={{ flexGrow: 1 }}>
                 <Chip label={n.estado} size="small" sx={{ mb: 1 }} color={n.estado === 'publicado' ? 'success' : n.estado === 'desactivado' ? 'default' : 'warning'} />
                 <h3 className="mt-1 mb-2">{n.titulo}</h3>
@@ -95,8 +112,17 @@ export default function NoticiasLista() {
                 )}
                 <Button
                   size="small"
+                  component="a"
+                  href={`/secciones/${obtenerSlugSeccion(n.seccionId)}/${n.id}`}
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Vista pública
+                </Button>
+                <Button
+                  size="small"
                   color="error"
-                  onClick={() => manejarEliminar(n.id)}
+                  onClick={() => eliminarNoticia(n.id)}
                   disabled={n.estado === ESTADOS_NOTICIA.publicado && !(rol === ROLES.editor || rol === ROLES.administrador)}
                 >
                   Eliminar

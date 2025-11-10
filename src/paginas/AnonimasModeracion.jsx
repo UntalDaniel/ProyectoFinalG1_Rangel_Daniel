@@ -31,7 +31,14 @@ export default function AnonimasModeracion() {
   async function actualizarEstadoDenuncia(id, estado) {
     try {
       await actualizarDocumento('anonimas', id, { estado })
-      setDenuncias((prev) => prev.map((x) => (x.id === id ? { ...x, estado } : x)))
+      setDenuncias((prev) => {
+        // Si el nuevo estado ya no coincide con el filtro actual, quitar la tarjeta de la lista
+        if (estado !== estadoFiltro) {
+          return prev.filter((x) => x.id !== id)
+        }
+        // Si sigue coincidiendo con el filtro, solo actualizar el estado local
+        return prev.map((x) => (x.id === id ? { ...x, estado } : x))
+      })
     } catch (e) {
       alert('No se pudo actualizar el estado')
     }
@@ -63,7 +70,6 @@ export default function AnonimasModeracion() {
           <option value="pendiente">pendiente</option>
           <option value="aceptado">aceptado</option>
           <option value="rechazado">rechazado</option>
-          <option value="cerrado">cerrado</option>
         </TextField>
         <Button onClick={() => cargarDenuncias(false)}>Refrescar</Button>
       </div>
@@ -83,7 +89,6 @@ export default function AnonimasModeracion() {
               <div className="acciones-linea">
                 <Button size="small" variant="contained" onClick={() => actualizarEstadoDenuncia(it.id, 'aceptado')}>Aceptar</Button>
                 <Button size="small" variant="outlined" onClick={() => actualizarEstadoDenuncia(it.id, 'rechazado')}>Rechazar</Button>
-                <Button size="small" onClick={() => actualizarEstadoDenuncia(it.id, 'cerrado')}>Cerrar</Button>
                 <Divider orientation="vertical" flexItem />
                 <Button size="small" color="secondary" onClick={() => desarrollar(it)}>Desarrollar</Button>
               </div>

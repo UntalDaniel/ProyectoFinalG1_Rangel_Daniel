@@ -13,3 +13,22 @@
   color: #fff;
   background: linear-gradient(90deg, #166534, #1D4ED8);
 }
+
+/* Responsive */
+@media (max-width: 640px){
+  .header .barra-navegacion{
+    flex-direction: column;
+    align-items: stretch;
+    gap: .5rem;
+  }
+  .header .marca{
+    text-align: center;
+  }
+  .header .nav-enlaces{
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .header .boton-nav{
+    min-width: 90px;
+  }
+}

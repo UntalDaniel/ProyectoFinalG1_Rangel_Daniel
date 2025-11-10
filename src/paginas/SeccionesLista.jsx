@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { listarDocumentos, eliminarDocumento } from '../servicios/firebase'
+import { Button } from '@mui/material'
+import { slugify } from '../servicios/slug'
 
 export default function SeccionesLista() {
   const [secciones, setSecciones] = useState([])
@@ -24,7 +26,7 @@ export default function SeccionesLista() {
     cargar()
   }, [])
 
-  async function manejarEliminar(id) {
+  async function eliminarSeccion(id) {
     const ok = confirm('¿Eliminar esta sección?')
     if (!ok) return
     try {
@@ -39,37 +41,39 @@ export default function SeccionesLista() {
 
   return (
     <div>
-      <h1>Secciones</h1>
-      <div style={{ marginBottom: 12 }}>
-        <button onClick={() => navegar('/panel/secciones/nueva')}>Nueva sección</button>
+      <header className="mb-3">
+        <h1 className="mt-0">Secciones</h1>
+        <p className="m-0 texto-secundario">Administra las categorías visibles en el sitio.</p>
+      </header>
+      <div className="mb-2">
+        <Button variant="contained" color="success" onClick={() => navegar('/panel/secciones/nueva')}>Nueva sección</Button>
       </div>
       {error && <p style={{ color: 'crimson' }}>{error}</p>}
       {secciones.length === 0 ? (
         <p>No hay secciones</p>
       ) : (
-        <table border="1" cellPadding="8">
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Slug</th>
-              <th>Activa</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {secciones.map((s) => (
-              <tr key={s.id}>
-                <td>{s.nombre}</td>
-                <td>{s.slug}</td>
-                <td>{String(s.activa)}</td>
-                <td>
-                  <Link to={`/panel/secciones/${s.id}`}>Editar</Link>{' '}
-                  <button onClick={() => manejarEliminar(s.id)}>Eliminar</button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="grid-tarjetas">
+          {secciones.map((s) => (
+            <div key={s.id} className="tarjeta">
+              <h3 className="mt-0">{s.nombre}</h3>
+              <p className="m-0 texto-pequenio texto-secundario">Slug: {s.slug || slugify(s.nombre || '')}</p>
+              <p className="m-0 texto-pequenio texto-secundario">Activa: {String(s.activa)}</p>
+              <div className="acciones-linea mt-2">
+                <Button size="small" onClick={() => navegar(`/panel/secciones/${s.id}`)}>Editar</Button>
+                <Button size="small" color="error" onClick={() => eliminarSeccion(s.id)}>Eliminar</Button>
+                <Button
+                  size="small"
+                  component="a"
+                  href={`/secciones/${s.slug || slugify(s.nombre || '')}`}
+                  target="_blank"
+                  rel="noopener"
+                >
+                  Ver pública
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )

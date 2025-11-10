@@ -7,7 +7,7 @@ import { listarDocumentos } from '../servicios/firebase'
 export default function PanelAdministrador() {
   const navegar = useNavigate()
   const { usuarioActual } = useUsuario()
-  const [contadores, setContadores] = useState({ anonPend: 0, usuarios: 0, secciones: 0, noticias: 0 })
+  const [contadores, setContadores] = useState({ anonimasPendientes: 0, usuarios: 0, secciones: 0, noticias: 0 })
 
   useEffect(() => {
     async function cargar() {
@@ -19,13 +19,13 @@ export default function PanelAdministrador() {
           listarDocumentos('noticias'),
         ])
         setContadores({
-          anonPend: anon.filter((a) => a.estado === 'pendiente').length,
+          anonimasPendientes: anon.filter((a) => a.estado === 'pendiente').length,
           usuarios: us.length,
           secciones: sec.length,
           noticias: noti.length,
         })
       } catch (e) {
-        setContadores({ anonPend: 0, usuarios: 0, secciones: 0, noticias: 0 })
+        setContadores({ anonimasPendientes: 0, usuarios: 0, secciones: 0, noticias: 0 })
       }
     }
     cargar()
@@ -41,7 +41,7 @@ export default function PanelAdministrador() {
       <div className="grid-tarjetas">
         <div className="tarjeta">
           <h3 className="mt-0">📣 Denuncias anónimas</h3>
-          <p>Pendientes: <strong>{contadores.anonPend}</strong></p>
+          <p>Pendientes: <strong>{contadores.anonimasPendientes}</strong></p>
           <div>
             <Button variant="contained" color="success" onClick={() => navegar('/panel/anonimas')}>Moderar</Button>
           </div>
@@ -65,6 +65,13 @@ export default function PanelAdministrador() {
           <p>Total: <strong>{contadores.noticias}</strong></p>
           <div>
             <Button variant="contained" color="success" onClick={() => navegar('/panel/noticias')}>Abrir</Button>
+          </div>
+        </div>
+        <div className="tarjeta">
+          <h3 className="mt-0">🎬 Videos</h3>
+          <p>Gestiona los videos de YouTube que se muestran en Inicio.</p>
+          <div>
+            <Button variant="contained" color="success" onClick={() => navegar('/panel/videos')}>Abrir</Button>
           </div>
         </div>
       </div>

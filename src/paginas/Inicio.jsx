@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { slugify } from '../servicios/slug'
 import { listarDocumentos, listarNoticiasPublicadas } from '../servicios/firebase'
+import TarjetaNoticia from '../Components/TarjetaNoticia'
 import { Chip, Button } from '@mui/material'
 
 export default function Inicio() {
+  const navegar = useNavigate()
   const [secciones, setSecciones] = useState([])
   const [noticias, setNoticias] = useState([])
   const [estaCargando, setEstaCargando] = useState(true)
@@ -11,6 +14,10 @@ export default function Inicio() {
   const [municipioSel, setMunicipioSel] = useState('todos')
   const [seccionSel, setSeccionSel] = useState('todas')
   const [municipiosDisponibles, setMunicipiosDisponibles] = useState([])
+  const [videos, setVideos] = useState([])
+  const [indiceVideo, setIndiceVideo] = useState(0)
+  const [toqueInicio, setToqueInicio] = useState(null)
+  const [desplazamientoToque, setDesplazamientoToque] = useState(0)
   
 
   useEffect(() => {
@@ -45,17 +52,31 @@ export default function Inicio() {
     return () => { activo = false }
   }, [])
 
-  // Cargar municipios disponibles desde todas las noticias publicadas (una vez)
+  // Cargar videos una sola vez
+  useEffect(() => {
+    let activo = true
+    async function cargarVideos() {
+      try {
+        const items = await listarDocumentos('videos')
+        if (!activo) return
+        const activos = (items || []).filter(v => v.activo)
+        setVideos(activos)
+      } catch (e) {
+        // ignorar
+      }
+    }
+    cargarVideos()
+    return () => { activo = false }
+  }, [])
+
+  // Cargar municipios disponibles desde noticias publicadas (una vez)
   useEffect(() => {
     let activo = true
     async function cargarMunicipios() {
       try {
-        const todas = await listarDocumentos('noticias')
+        const { items } = await listarNoticiasPublicadas({ tam: 200 })
         if (!activo) return
-        const publicados = (todas || []).filter((n) => (n.estado || '').toLowerCase() === 'publicado')
-        const unicos = Array.from(
-          new Set(publicados.map((n) => (n.municipio || '').trim()).filter((m) => m))
-        )
+        const unicos = Array.from(new Set((items || []).map((n) => (n.municipio || '').trim()).filter((m) => m)))
         setMunicipiosDisponibles(unicos)
       } catch (e) {
         // ignorar
@@ -71,8 +92,106 @@ export default function Inicio() {
 
   const hayResultados = secciones.some((s) => filtrarNoticiasPorSeccion(s.id).length > 0)
 
+  function extraerIdDeYouTube(url) {
+    if (!url) return ''
+    try {
+      const u = new URL(url)
+      if (u.hostname.includes('youtu.be')) {
+        return u.pathname.replace('/', '')
+      }
+      if (u.searchParams.get('v')) {
+        return u.searchParams.get('v') || ''
+      }
+      const m = u.pathname.match(/\/embed\/([\w-]{6,})/)
+      return m ? m[1] : ''
+    } catch {
+      const m = String(url).match(/(?:v=|be\/|embed\/)([\w-]{6,})/)
+      return m ? m[1] : ''
+    }
+  }
+
+  function alTocarInicio(e) {
+    if (!videos.length) return
+    const t = e.touches && e.touches[0]
+    if (!t) return
+    setToqueInicio({ x: t.clientX, y: t.clientY })
+    setDesplazamientoToque(0)
+  }
+
+  function alMoverToque(e) {
+    if (!toqueInicio) return
+    const t = e.touches && e.touches[0]
+    if (!t) return
+    const dx = t.clientX - toqueInicio.x
+    const dy = t.clientY - toqueInicio.y
+    if (Math.abs(dx) > Math.abs(dy)) {
+      e.preventDefault()
+      setDesplazamientoToque(dx)
+    }
+  }
+
+  function alTerminarToque() {
+    if (!toqueInicio) return
+    const umbral = 40
+    if (desplazamientoToque > umbral) {
+      setIndiceVideo((p) => (p - 1 + videos.length) % videos.length)
+    } else if (desplazamientoToque < -umbral) {
+      setIndiceVideo((p) => (p + 1) % videos.length)
+    }
+    setToqueInicio(null)
+    setDesplazamientoToque(0)
+  }
+
   return (
     <div>
+      {videos.length > 0 && (
+        <section className="mb-6">
+          <h2>🎬 Noticias en video</h2>
+          <div className="carrusel">
+            <button className="carrusel-btn" aria-label="Anterior" onClick={() => setIndiceVideo((p) => (p - 1 + videos.length) % videos.length)}>‹</button>
+            <div
+              className="carrusel-contenedor"
+              onTouchStart={alTocarInicio}
+              onTouchMove={alMoverToque}
+              onTouchEnd={alTerminarToque}
+            >
+              {videos.map((v, i) => {
+                const id = v.videoId || extraerIdDeYouTube(v.url)
+                const visible = i === indiceVideo
+                return (
+                  <div key={v.id} className={`carrusel-item ${visible ? 'activo' : ''}`}>
+                    {visible && id ? (
+                      <div className="video-wrapper">
+                        <iframe
+                          width="560"
+                          height="315"
+                          src={`https://www.youtube.com/embed/${id}`}
+                          title={v.titulo || 'Video de YouTube'}
+                          frameBorder="0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                          allowFullScreen
+                          loading="lazy"
+                        />
+                      </div>
+                    ) : (
+                      <div className="video-wrapper" />
+                    )}
+                    <div className="mt-1" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+                      <p className="m-0"><strong>{v.titulo || 'Video'}</strong></p>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <button className="carrusel-btn" aria-label="Siguiente" onClick={() => setIndiceVideo((p) => (p + 1) % videos.length)}>›</button>
+          </div>
+          <div className="carrusel-indicadores">
+            {videos.map((_, i) => (
+              <button key={i} className={`punto ${i === indiceVideo ? 'activo' : ''}`} onClick={() => setIndiceVideo(i)} aria-label={`Ir al video ${i + 1}`} />
+            ))}
+          </div>
+        </section>
+      )}
       <div className="barra-filtros">
         <select value={municipioSel} onChange={(e) => setMunicipioSel(e.target.value)} className="select-simple select-fijo">
           <option value="todos">Todos los municipios</option>
@@ -129,29 +248,17 @@ export default function Inicio() {
               <h2>{s.nombre}</h2>
               <div className="grid-tarjetas">
                 {listaMostrar.map((n) => (
-                  <div key={n.id} className="tarjeta overflow-oculto">
-                    {n.imagenUrl ? (
-                      <img src={n.imagenUrl} alt={n.titulo} loading="lazy" className="tarjeta-cabecera-img" />
-                    ) : (
-                      <div className="tarjeta-cabecera-vacia" />
-                    )}
-                    <div className="mt-2">
-                      <Chip label={s.nombre} size="small" sx={{ mb: 1 }} color="primary" />
-                      {n.municipio && <Chip label={n.municipio} size="small" sx={{ mb: 1, ml: 1 }} />}
-                      <h3 className="mt-1 mb-2">
-                        <Link to={`/noticia/${n.id}`}>{n.titulo}</Link>
-                      </h3>
-                      {n.subtitulo && <p className="m-0 texto-secundario">{n.subtitulo}</p>}
-                      <p className="mt-2 texto-pequenio texto-secundario">
-                        {`Por ${n.autorNombre || 'Autor desconocido'}`}
-                      </p>
-                    </div>
-                  </div>
+                  <TarjetaNoticia
+                    key={n.id}
+                    noticia={n}
+                    seccionNombre={s.nombre}
+                    linkPath={`/secciones/${slugify(s.nombre)}/${n.id}`}
+                  />
                 ))}
               </div>
               {seccionSel === 'todas' && deSeccion.length > 3 && (
                 <div className="mt-2" style={{ display: 'flex', justifyContent: 'center' }}>
-                  <Button variant="outlined" onClick={() => setSeccionSel(s.id)}>Ver más</Button>
+                  <Button variant="outlined" onClick={() => navegar(`/secciones/${slugify(s.nombre)}`)}>Ver más</Button>
                 </div>
               )}
             </section>

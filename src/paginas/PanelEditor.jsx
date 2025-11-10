@@ -7,7 +7,7 @@ import { listarDocumentos, listarAnonimas } from '../servicios/firebase'
 export default function PanelEditor() {
   const navegar = useNavigate()
   const { usuarioActual } = useUsuario()
-  const [contadores, setContadores] = useState({ anonAcept: 0, noticias: 0, secciones: 0 })
+  const [contadores, setContadores] = useState({ anonimasAceptadas: 0, noticias: 0, secciones: 0 })
 
   useEffect(() => {
     async function cargar() {
@@ -18,12 +18,12 @@ export default function PanelEditor() {
           listarDocumentos('secciones'),
         ])
         setContadores({
-          anonAcept: anon.length,
+          anonimasAceptadas: anon.length,
           noticias: noti.length,
           secciones: sec.length,
         })
       } catch (e) {
-        setContadores({ anonAcept: 0, noticias: 0, secciones: 0 })
+        setContadores({ anonimasAceptadas: 0, noticias: 0, secciones: 0 })
       }
     }
     cargar()
@@ -39,7 +39,7 @@ export default function PanelEditor() {
       <div className="grid-tarjetas">
         <div className="tarjeta">
           <h3 className="mt-0">📥 Anónimas aceptadas</h3>
-          <p>Total: <strong>{contadores.anonAcept}</strong></p>
+          <p>Total: <strong>{contadores.anonimasAceptadas}</strong></p>
           <div>
             <Button variant="contained" color="success" onClick={() => navegar('/panel/anonimas/aceptadas')}>Abrir</Button>
           </div>
